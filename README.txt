@@ -1,18 +1,17 @@
-mcse = Minecrat Coded for Server - version 1.1
-répsertoire "mcse" à placer dans : \Rep_Python\Lib\site-packages\
-Comment utiliser la bibliothèque dans python taper : >>> help("mcse.minecraft")
+mcpi - python for minecraft server by http://pinet.rouviere.free.fr/index.html
 
-Modification du package mcpi développé par Martin O'Lannon (mis au point et testé avec serveur Bukkit v1.15.1)
+based on the package developed by Martin O'Lannon for the Raspberry Juice Mod 
+and modified by sprouviere
 
-but : Modifier le mode de gestion des objet en remplçant les identificateurs numériques "id" par leur nom "Material" :
-id = 2 =====>  "GRASS"
+In the mcpi and raspberry juice setup you used block.BLOCKTYPE.id to reference blocks.
+With this setup you use "BLOCKNAME" from this list:
 
-Ceci permet d'intéger la nouvelle dénomination des objets minecraft : voir : https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html  pour la liste des "Materials" accessibles
+https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html  
 
-par exemple : 
-"BLACK_BED", "ROSE_BUSH", "SANDSTONE_SLAB" en tenant compte des  "BlockData" spécifiques des ojets
+for example : 
+"BLACK_BED", "ROSE_BUSH", "SANDSTONE_SLAB" 
 
-Exemple utilisation des fonctions :
+Example functions (in French):
 --------------------------------------
 http://pinet.rouviere.free.fr/index.html
 
