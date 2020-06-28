@@ -46,7 +46,10 @@ class CmdPositioner:
     def getPos(self, id):
         """Get entity position (entityId:int) => Vec3"""
         s = self.conn.sendReceive(self.pkg + b".getPos", id)
-        return Vec3(*list(map(float, s.split(","))))
+        try:
+            return Vec3(*list(map(float, s.split(","))))
+        except:
+            return s
 
 
     def setPos(self, id, *args):
@@ -149,58 +152,74 @@ class CmdEntity(CmdPositioner):
 
 class CmdPlayer(CmdPositioner):
     """Methods for the host (Raspberry Pi) player"""
-    def __init__(self, connection):
+    def __init__(self, connection, id = None, pkg = b"player"):
         CmdPositioner.__init__(self, connection, b"player")
-        self.conn = connection
+        
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, val):
+        if isinstance(val, int):
+            self._id = val
+            self.pkg = b"multiplayer"
+        elif isinstance(val, str) and val != "":
+            self._id = val
+            self.pkg = b"multiplayer"
+        else:
+            self._id = []
+            self.pkg = b"player"
+
 
     def getPos(self):
-        return CmdPositioner.getPos(self, [])
+        return CmdPositioner.getPos(self, self.id)
     def setPos(self, *args):
-        return CmdPositioner.setPos(self, [], args)
+        return CmdPositioner.setPos(self, self.id, args)
     def getTilePos(self):
-        return CmdPositioner.getTilePos(self, [])
+        return CmdPositioner.getTilePos(self, self.id)
     def setTilePos(self, *args):
-        return CmdPositioner.setTilePos(self, [], args)
+        return CmdPositioner.setTilePos(self, self.id, args)
     def setDirection(self, *args):
-        return CmdPositioner.setDirection(self, [], args)
+        return CmdPositioner.setDirection(self, self.id, args)
     def getDirection(self):
-        return CmdPositioner.getDirection(self, [])
+        return CmdPositioner.getDirection(self, self.id)
     def setRotation(self, yaw):
-        return CmdPositioner.setRotation(self, [], yaw)
+        return CmdPositioner.setRotation(self, self.id, yaw)
     def getRotation(self):
-        return CmdPositioner.getRotation(self, [])
+        return CmdPositioner.getRotation(self, self.id)
     def setPitch(self, pitch):
-        return CmdPositioner.setPitch(self, [], pitch)
+        return CmdPositioner.setPitch(self, self.id, pitch)
     def getPitch(self):
-        return CmdPositioner.getPitch(self, [])
+        return CmdPositioner.getPitch(self, self.id)
 
     def getEntities(self, distance=10, typeId=""):
         """Return a list of entities near entity (distanceFromPlayerInBlocks:int, typeId:int) => [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]"""
         """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        s = self.conn.sendReceive(b"player.getEntities", distance, typeId)
+        s = self.conn.sendReceive(self.pkg + b".getEntities", self.id, distance, typeId)
         entities = [e for e in s.split("|") if e]
         return [ [int(n.split(",")[0]), int(n.split(",")[1]), n.split(",")[2], float(n.split(",")[3]), float(n.split(",")[4]), float(n.split(",")[5])] for n in entities]
 
     def removeEntities(self, distance=10, typeId=-1):
         """Remove entities all entities near entity (distanceFromPlayerInBlocks:int, typeId:int, ) => (removedEntitiesCount:int)"""
         """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        return int(self.conn.sendReceive(b"player.removeEntities", distance, typeId))
+        return int(self.conn.sendReceive(self.pkg + b".removeEntities", self.id, distance, typeId))
 
     def pollBlockHits(self):
         """Only triggered by sword => [BlockEvent]"""
-        s = self.conn.sendReceive(b"player.events.block.hits")
+        s = self.conn.sendReceive(self.pkg + b".events.block.hits", self.id)
         events = [e for e in s.split("|") if e]
         return [BlockEvent.Hit(*list(map(int, e.split(",")))) for e in events]
 
     def pollChatPosts(self):
         """Triggered by posts to chat => [ChatEvent]"""
-        s = self.conn.sendReceive(b"player.events.chat.posts")
+        s = self.conn.sendReceive(self.pkg + b".events.chat.posts", self.id)
         events = [e for e in s.split("|") if e]
         return [ChatEvent.Post(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in events]
     
     def pollProjectileHits(self):
         """Only triggered by projectiles => [BlockEvent]"""
-        s = self.conn.sendReceive(b"player.events.projectile.hits")
+        s = self.conn.sendReceive(self.pkg + b".events.projectile.hits", self.id)
         events = [e for e in s.split("|") if e]
         results = []
         for e in events:
@@ -216,7 +235,7 @@ class CmdPlayer(CmdPositioner):
 
     def clearEvents(self):
         """Clear the players events"""
-        self.conn.send(b"player.events.clear")
+        self.conn.send(self.pkg + b".events.clear", self.id)
 
 class CmdCamera:
     def __init__(self, connection):
@@ -290,7 +309,7 @@ class Minecraft:
         self.events = CmdEvents(connection)
 
         
-    # GetBlock n'utilise que des arguments de position mais renvoie une chaîne de caractères
+    # GetBlock n'utilise que des arguments de position mais renvoie une chaine de caractres
     def getBlock(self, *args):
         """Get block (x,y,z) => return Material type : string -  v 1.15.1 """
 
@@ -316,7 +335,6 @@ class Minecraft:
         intFloor(args[0:2])
         self.conn.send(b"world.setBlock", args)
        
-
     def setBlocks(self, *args):
         """Set a cuboid of blocks (x0,y0,z0,x1,y1,z1,Material,[data]) -  v 1.15.1
 
@@ -372,8 +390,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockDir",flatargs[0:5])
 
-
-
     def setBlockMultiFace(self, *args):
         """Set block Multiface, BlockData: MultipleFacing (x,y,z,Material,faces*)
 
@@ -398,7 +414,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         #print(flatargs)
         self.conn.send(b"world.setBlockMultiFace",flatargs[0:nb])
-
 
     def setBlockOrient(self, *args):
         """Set block orientable (x,y,z,Material,Orientation -  v 1.15.1
@@ -425,7 +440,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockOrient",flatargs[0:5])
-
 
     def setBlockRotat(self, *args):
         """Set block rotatable  (x,y,z,Material,Orientation, [motif*,couleur*]
@@ -500,7 +514,6 @@ class Minecraft:
         flatargs[4]=str(flatargs[4]);
         self.conn.send(b"world.setBlockAge",flatargs[0:5])               
 
-
     def setBlockBisected(self, *args):
         """Set a BlockData : Bisected -like peony, rose_bush (x,y,z, Material, bisected)
 
@@ -520,8 +533,6 @@ class Minecraft:
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["UPPER"])
         flatargs[1] = flatargs[1] - 1  # Y  --- LOWER
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["LOWER"])
-
-
 
     def setBlockSapl(self, *args) :
         """Set block Sapling(x,y,z,material,stage) -  v 1.15.1
@@ -557,12 +568,12 @@ class Minecraft:
         
         Level :	 on fixe la valeur de level
         In the case of water and lava blocks the levels have special meanings: 
-	 a level of 0 corresponds to a source block, 
-	1-7 regular fluid heights,
-	and 8-15 to "falling" fluids. 
-	 All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
-	equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
-	 whilst 7 is the lowest.
+        a level of 0 corresponds to a source block, 
+        1-7 regular fluid heights,
+        and 8-15 to "falling" fluids. 
+        All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
+        equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
+        whilst 7 is the lowest.
                 
         material : str
         
@@ -631,7 +642,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBed",flatargs[0:6])
-
 
     def setGate(self, *args):
         """Set a Gate (x,y,z, Material, Facing, DansMur)
@@ -710,8 +720,7 @@ class Minecraft:
             flatargs = flatargs + ['False']
 
         self.conn.send(b"world.setTrapDoor",flatargs[0:7])
-
-       
+     
     def setPane(self, *args):
         """Set a Fence - barrière block who is a BlockData : GlassPane ie
         who has facing property (x,y,z, Material, Facing)
@@ -742,8 +751,7 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setPane",flatargs[0:nb])
-        
-       
+               
     def setFence(self, *args):
         """Set a Fence - barrière block who is a BlockData : fence ie
         who has facing property (x,y,z, Material, Facing)
@@ -767,8 +775,6 @@ class Minecraft:
 
         self.conn.send(b"world.setFence",flatargs[0:5])
         
-
-
     def setChest(self, *args):
         """Set a Chest (x,y,z, Material, ChestType, Direction)
 
@@ -784,7 +790,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setChest",flatargs[0:6])
-
 
     def setFurnace(self, *args):
         """Set a Blocktype : Furnace (x,y,z, Material, Direction, Light)
@@ -829,7 +834,6 @@ class Minecraft:
 
         self.conn.send(b"world.setSlab",flatargs[0:5])
 
-
     def setStairs(self, *args):
         """Set a Stair (x,y,z, Material, Facing, Shape, Half)
 
@@ -870,14 +874,13 @@ class Minecraft:
 
         self.conn.send(b"world.setStairs",flatargs[0:7])
 
-
     def spawnEntity(self, *args):
         """Spawn entity (x,y,z,EntityType,"BABY")  - version 1.15.1
         x,y,z : postition
         EntityType : str parmi la liste des Entités org.bukkit.EntityType: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
         
-comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
-"""
+        comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
+        """
         
         return int(self.conn.sendReceive(b"world.spawnEntity", args))
 
