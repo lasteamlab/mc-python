@@ -6,7 +6,7 @@ from .block import Block
 import math
 from .util import flatten
 
-""" Minecraft for serveur v1.15.1 and later
+""" Minecraft for serveur v1.15.1
 
     Note: many methods have the parameter *arg. This solution makes it
     simple to allow different types, and variable number of arguments.
@@ -50,7 +50,6 @@ class CmdPositioner:
             return Vec3(*list(map(float, s.split(","))))
         except:
             return s
-
 
     def setPos(self, id, *args):
         """Set entity position (entityId:int, x,y,z)"""
@@ -107,21 +106,16 @@ class CmdEntity(CmdPositioner):
         return self.conn.sendReceive(b"entity.getName", id)
 
     def getEntities(self, id, distance=10, typeId=""):
-        """Return a list of entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeId:int) =>
-        [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]
-        
-        If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used
-        la fonction renvoie :  ID de l'entité (int), type d'entité (str), position de l'entité en X (float), Y(float) et Z(float)
-        """
+        """Return a list of entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeId:int) => [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]"""
+        """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
         s = self.conn.sendReceive(b"entity.getEntities", id, distance, typeId)
         entities = [e for e in s.split("|") if e]
-        
-        return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
+        return [ [int(n.split(",")[0]), int(n.split(",")[1]), n.split(",")[2], float(n.split(",")[3]), float(n.split(",")[4]), float(n.split(",")[5])] for n in entities]
 
-    def removeEntities(self, id, typeEntity,distance=10):
-        """Remove entities all entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeEntity:str ) => (removedEntitiesCount:int)"""
+    def removeEntities(self, id, distance=10, typeId=-1):
+        """Remove entities all entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeId:int, ) => (removedEntitiesCount:int)"""
         """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        return int(self.conn.sendReceive(b"entity.removeEntities", id, distance, typeEntity))
+        return int(self.conn.sendReceive(b"entity.removeEntities", id, distance, typeId))
 
     def pollBlockHits(self, *args):
         """Only triggered by sword => [BlockEvent]"""
@@ -146,20 +140,17 @@ class CmdEntity(CmdPositioner):
                 int(info[0]), 
                 int(info[1]), 
                 int(info[2]), 
-                info[3],       # noms du joueur
-                int(info[4]),  # entityId si c'est 0 c'est que aucune entité n'a été touchée
-                info[5]))      # entitTname
-        return results        
-        
-        
-        
-        
+                int(info[3]), 
+                info[4],
+                info[5]))
+        return results
+
     def clearEvents(self, *args):
         """Clear the entities events"""
         self.conn.send(b"entity.events.clear", intFloor(args))
 
 class CmdPlayer(CmdPositioner):
-    """Methods for the player"""
+    """Methods for the host (Raspberry Pi) player"""
     def __init__(self, connection, id = None, pkg = b"player"):
         CmdPositioner.__init__(self, connection, b"player")
         self._id = []
@@ -181,6 +172,7 @@ class CmdPlayer(CmdPositioner):
         else:
             self._id = []
             self.pkg = b"player"
+
 
     def getPos(self):
         return CmdPositioner.getPos(self, self.id)
@@ -204,21 +196,16 @@ class CmdPlayer(CmdPositioner):
         return CmdPositioner.getPitch(self, self.id)
 
     def getEntities(self, distance=10, typeId=""):
-        """Return a list of entities near entity (distanceFromPlayerInBlocks:int, typeId:int) =>
-        [[entityId:int,EntityTypeName:str,posX:float,posY:float,posZ:float]]
-        If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used
-        """
+        """Return a list of entities near entity (distanceFromPlayerInBlocks:int, typeId:int) => [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]"""
+        """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
         s = self.conn.sendReceive(self.pkg + b".getEntities", self.id, distance, typeId)
         entities = [e for e in s.split("|") if e]
-        print(entities)
-        return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
+        return [ [int(n.split(",")[0]), int(n.split(",")[1]), n.split(",")[2], float(n.split(",")[3]), float(n.split(",")[4]), float(n.split(",")[5])] for n in entities]
 
-    def removeEntities(self, distance=10, typeEntity = ""):
-        """Remove entities all entities near entity (distanceFromPlayerInBlocks:int, typeEntity: str ) => (removedEntitiesCount:int)"""
+    def removeEntities(self, distance=10, typeId=-1):
+        """Remove entities all entities near entity (distanceFromPlayerInBlocks:int, typeId:int, ) => (removedEntitiesCount:int)"""
         """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        print(distance)
-        print(typeEntity)
-        return int(self.conn.sendReceive(self.pkg + b".removeEntities", self.id, distance, typeEntity))
+        return int(self.conn.sendReceive(self.pkg + b".removeEntities", self.id, distance, typeId))
 
     def pollBlockHits(self):
         """Only triggered by sword => [BlockEvent]"""
@@ -243,12 +230,11 @@ class CmdPlayer(CmdPositioner):
                 int(info[0]), 
                 int(info[1]), 
                 int(info[2]), 
-                info[3],            # noms du joueur
-                int(info[4]),  # entityId
-                info[5]))      # entitTname
-        return results       
-        
-        
+                int(info[3]), 
+                info[4],
+                info[5]))
+        return results
+
     def clearEvents(self):
         """Clear the players events"""
         self.conn.send(self.pkg + b".events.clear", self.id)
@@ -305,9 +291,9 @@ class CmdEvents:
                 int(info[0]), 
                 int(info[1]), 
                 int(info[2]), 
-                info[3],       # noms du joueur
-                int(info[4]),  # entityId
-                info[5]))      # entitTname
+                int(info[3]), 
+                info[4],
+                info[5]))
         return results
 
 class Minecraft:
@@ -324,7 +310,7 @@ class Minecraft:
         self.events = CmdEvents(connection)
 
         
-    # GetBlock n'utilise que des arguments de position mais renvoie une chaîne de caractères
+    # GetBlock n'utilise que des arguments de position mais renvoie une chaine de caractres
     def getBlock(self, *args):
         """Get block (x,y,z) => return Material type : string -  v 1.15.1 """
 
@@ -350,9 +336,8 @@ class Minecraft:
         intFloor(args[0:2])
         self.conn.send(b"world.setBlock", args)
        
-
     def setBlocks(self, *args):
-        """Set a cuboid of blocks (x0,y0,z0,x1,y1,z1,Material) -  v 1.15.1
+        """Set a cuboid of blocks (x0,y0,z0,x1,y1,z1,Material,[data]) -  v 1.15.1
 
         Material must be one of this at :
         https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html
@@ -406,8 +391,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockDir",flatargs[0:5])
 
-
-
     def setBlockMultiFace(self, *args):
         """Set block Multiface, BlockData: MultipleFacing (x,y,z,Material,faces*)
 
@@ -432,7 +415,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         #print(flatargs)
         self.conn.send(b"world.setBlockMultiFace",flatargs[0:nb])
-
 
     def setBlockOrient(self, *args):
         """Set block orientable (x,y,z,Material,Orientation -  v 1.15.1
@@ -459,7 +441,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockOrient",flatargs[0:5])
-
 
     def setBlockRotat(self, *args):
         """Set block rotatable  (x,y,z,Material,Orientation, [motif*,couleur*]
@@ -534,7 +515,6 @@ class Minecraft:
         flatargs[4]=str(flatargs[4]);
         self.conn.send(b"world.setBlockAge",flatargs[0:5])               
 
-
     def setBlockBisected(self, *args):
         """Set a BlockData : Bisected -like peony, rose_bush (x,y,z, Material, bisected)
 
@@ -554,8 +534,6 @@ class Minecraft:
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["UPPER"])
         flatargs[1] = flatargs[1] - 1  # Y  --- LOWER
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["LOWER"])
-
-
 
     def setBlockSapl(self, *args) :
         """Set block Sapling(x,y,z,material,stage) -  v 1.15.1
@@ -591,12 +569,12 @@ class Minecraft:
         
         Level :	 on fixe la valeur de level
         In the case of water and lava blocks the levels have special meanings: 
-	 a level of 0 corresponds to a source block, 
-	1-7 regular fluid heights,
-	and 8-15 to "falling" fluids. 
-	 All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
-	equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
-	 whilst 7 is the lowest.
+        a level of 0 corresponds to a source block, 
+        1-7 regular fluid heights,
+        and 8-15 to "falling" fluids. 
+        All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
+        equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
+        whilst 7 is the lowest.
                 
         material : str
         
@@ -665,7 +643,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBed",flatargs[0:6])
-
 
     def setGate(self, *args):
         """Set a Gate (x,y,z, Material, Facing, DansMur)
@@ -744,8 +721,7 @@ class Minecraft:
             flatargs = flatargs + ['False']
 
         self.conn.send(b"world.setTrapDoor",flatargs[0:7])
-
-       
+     
     def setPane(self, *args):
         """Set a Fence - barrière block who is a BlockData : GlassPane ie
         who has facing property (x,y,z, Material, Facing)
@@ -776,8 +752,7 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setPane",flatargs[0:nb])
-        
-       
+               
     def setFence(self, *args):
         """Set a Fence - barrière block who is a BlockData : fence ie
         who has facing property (x,y,z, Material, Facing)
@@ -801,8 +776,6 @@ class Minecraft:
 
         self.conn.send(b"world.setFence",flatargs[0:5])
         
-
-
     def setChest(self, *args):
         """Set a Chest (x,y,z, Material, ChestType, Direction)
 
@@ -818,7 +791,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setChest",flatargs[0:6])
-
 
     def setFurnace(self, *args):
         """Set a Blocktype : Furnace (x,y,z, Material, Direction, Light)
@@ -863,7 +835,6 @@ class Minecraft:
 
         self.conn.send(b"world.setSlab",flatargs[0:5])
 
-
     def setStairs(self, *args):
         """Set a Stair (x,y,z, Material, Facing, Shape, Half)
 
@@ -904,104 +875,35 @@ class Minecraft:
 
         self.conn.send(b"world.setStairs",flatargs[0:7])
 
-
     def spawnEntity(self, *args):
         """Spawn entity (x,y,z,EntityType,"BABY")  - version 1.15.1
         x,y,z : postition
         EntityType : str parmi la liste des Entités org.bukkit.EntityType: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
         
-comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
-"""
+        comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
+        """
         
         return int(self.conn.sendReceive(b"world.spawnEntity", args))
 
-    def spawnCat(self,*args):
-        """Spawn Cat (x,y,z,catType,bebe,CollarColor)  - version 1.15.1
+    def spawnCat(self, *args):
+        """Spawn Cat (x,y,z,bebe,catType, CollarColor)  - version 1.15.1
         x,y,z : postition
         
         bebe(str) : "BABY" pour indiquer que l'on veut un chaton
         
         catType : type de chat str parmi la liste 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Cat.Type.html
-comme par exemple  : ALL_BLACK, BLACK, BRITISH_SHORTHAIR, CALICO,
-JELLIE, PERSIAN, RAGDOLL, RED, SIAMESE, TABBY, WHITE
-        
-        collarColor (str) : couleur du collierdi chat  dans la liste :
-BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
-MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Cat.Type.html
+        comme par exemple  : ALL_BLACK, BLACK, BRITISH_SHORTHAIR, CALICO,
+        JELLIE, PERSIAN, RAGDOLL, RED, SIAMESE, TABBY, WHITE
+                
+                collarColor (str) : couleur du collierdi chat  dans la liste :
+        BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
+        MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
 
-"""
+        """
         
-        return int(self.conn.sendReceive(b"world.spawnCat",args))        
- 
-
-    def spawnHorse(self, *args):
-        """Spawn Cat (x,y,z, color, style, bebe="BABY", saut)  - version 1.15.1
-        x,y,z : postition
-
-        
-        color (str) : Couleur de base de la robe
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Color.html
-comme par exemple  : BLACK, BROWN, CHESTNUT, CREAMY, DARK_BROWN, GRAY, WHITE
-        
-        style(str) : style ou marques du cheval :
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Style.html
-BLACK_DOTS, NONE, WHITE, WHITE_DOTS, WHITEFIELD
-        
-        bebe(str) : "BABY" pour indiquer que l'on veut un poulain
-        
-        saut (float) : niveau de performance de saut (min : 0 - max 2.0)
-        
-        domestication (float) : niveau de domestication du cheval
-
-"""       
-        return int(self.conn.sendReceive(b"world.spawnHorse", args))   
-
-
-    def spawnParrot(self, *args):
-        """Spawn Parrot(x,y,z, variant,bebe)  - version 1.15.1
-        x,y,z : postition
-        
-        variant (str) : couleur du perroquet 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Parrot.Variant.html
-comme par exemple  : BLUE, CYAN, GRAY, GREEN, RED
-
-        bebe(str) : "BABY" pour indiquer que l'on veut un jeune perroquet
-
-"""       
-        return int(self.conn.sendReceive(b"world.spawnParrot", args)) 
-
-        
-    def spawnRabbit(self, *args):
-        
-        """Spawn Rabbit(x,y,z, type,bebe)  - version 1.15.1
-        x,y,z : postition
-        
-        type (str) : pelage du lapin 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Rabbit.Type.html
-comme par exemple  : BLACK, BLACK_AND_WHITE, BROWN, GOLD, SALT_AND_PEPPER, THE_KILLER_BUNNY, WHITE
-
-        bebe(str) : "BABY" pour indiquer que l'on veut un jeune perroquet
-
-"""       
-        return int(self.conn.sendReceive(b"world.spawnRabbit", args))        
-   
-    def spawnWolf(self,*args):   
-        
-        """ Spawn Wolf (x,y,z,bebe,CollarColor)  - version 1.15.1
-        x,y,z : postition
-        
-        bebe(str) : "BABY" pour indiquer que l'on veut un chaton
-               
-        collarColor (str) : couleur du collier du loup  dans la liste :
-BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
-MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
-Si l'argument est présent le loup est apprivoisé, sinon il est non apprivoisable
-
-"""
-        
-        return int(self.conn.sendReceive(b"world.spawnWolf",args))
-        
+        return int(self.conn.sendReceive(b"world.spawnCat", args))        
+             
     def getHeight(self, *args):
         """Get the height of the world (x,z) => int"""
         #print(args)
@@ -1039,27 +941,20 @@ Si l'argument est présent le loup est apprivoisé, sinon il est non apprivoisab
         #return [Entity(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in types]
         return [e for e in types]
 
-
     def getEntities(self, typeId=""):
         """Return a list of all currently loaded entities (EntityType:str) => [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]"""
         s = self.conn.sendReceive(b"world.getEntities", typeId)
         entities = [e for e in s.split("|") if e]
-        print(entities)
-        return [[int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
-      
-        
+        return [[int(n.split(",")[0]), int(n.split(",")[1]), n.split(",")[2], float(n.split(",")[3]), float(n.split(",")[4]), float(n.split(",")[5])] for n in entities]
+              
     def removeEntity(self, id):
-        """Remove entity Id (entityId:int) => (removedEntitiesCount:int)"""
+        """Remove entity by id (entityId:int) => (removedEntitiesCount:int)"""
         return int(self.conn.sendReceive(b"world.removeEntity", int(id)))
 
-    def removeEntities(self, typeEntite):
+    def removeEntities(self, typeId=-1):
         """Remove entities all currently loaded Entities by type (typeId:int) => (removedEntitiesCount:int)"""
-        return int(self.conn.sendReceive(b"world.removeEntities", typeEntite))
+        return int(self.conn.sendReceive(b"world.removeEntities", typeId))
 
-    def setEntityName(self, id, name):
-        """Give a name visible to an entity Id (entityId:int), name (Name to the entity : str) => (bool:true)"""
-        return bool(self.conn.sendReceive(b"world.setEntityName", int(id),name))        
-        
     @staticmethod
     def create(address = "localhost", port = 4711):
         return Minecraft(Connection(address, port))
