@@ -42,8 +42,20 @@ class CmdPositioner:
     def __init__(self, connection, packagePrefix):
         self.conn = connection
         self.pkg = packagePrefix
+        self._id = []
 
-    def getPos(self, id):
+    # Just here so we can overload it for CmdPlayer
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, val):
+        self._id = val
+
+    def getPos(self, id = None):
+        if id is None:
+            id = self.id
         """Get entity position (entityId:int) => Vec3"""
         s = self.conn.sendReceive(self.pkg + b".getPos", id)
         try:
@@ -51,42 +63,59 @@ class CmdPositioner:
         except:
             return s
 
-
-    def setPos(self, id, *args):
+    def setPos(self, id = None, *args):
+        if id is None:
+            id = self.id
         """Set entity position (entityId:int, x,y,z)"""
         self.conn.send(self.pkg + b".setPos", id, args)
 
-    def getTilePos(self, id):
+    def getTilePos(self, id = None):
+        if id is None:
+            id = self.id
         """Get entity tile position (entityId:int) => Vec3"""
         s = self.conn.sendReceive(self.pkg + b".getTile", id)
         return Vec3(*list(map(int, s.split(","))))
 
-    def setTilePos(self, id, *args):
+    def setTilePos(self, id = None, *args):
+        if id is None:
+            id = self.id
         """Set entity tile position (entityId:int) => Vec3"""
         self.conn.send(self.pkg + b".setTile", id, intFloor(*args))
 
-    def setDirection(self, id, *args):
+    def setDirection(self, id = None, *args):
+        if id is None:
+            id = self.id
         """Set entity direction (entityId:int, x,y,z)"""
         self.conn.send(self.pkg + b".setDirection", id, args)
 
-    def getDirection(self, id):
+    def getDirection(self, id = None):
+        if id is None:
+            id = self.id
         """Get entity direction (entityId:int) => Vec3"""
         s = self.conn.sendReceive(self.pkg + b".getDirection", id)
         return Vec3(*map(float, s.split(",")))
 
-    def setRotation(self, id, yaw):
+    def setRotation(self, id = None, yaw = 0):
+        if id is None:
+            id = self.id
         """Set entity rotation (entityId:int, yaw)"""
         self.conn.send(self.pkg + b".setRotation", id, yaw)
 
-    def getRotation(self, id):
+    def getRotation(self, id = None):
+        if id is None:
+            id = self.id
         """get entity rotation (entityId:int) => float"""
         return float(self.conn.sendReceive(self.pkg + b".getRotation", id))
 
-    def setPitch(self, id, pitch):
+    def setPitch(self, id = None, pitch = 0):
+        if id is None:
+            id = self.id
         """Set entity pitch (entityId:int, pitch)"""
         self.conn.send(self.pkg + b".setPitch", id, pitch)
 
-    def getPitch(self, id):
+    def getPitch(self, id = None):
+        if id is None:
+            id = self.id
         """get entity pitch (entityId:int) => float"""
         return float(self.conn.sendReceive(self.pkg + b".getPitch", id))
 
@@ -97,47 +126,52 @@ class CmdPositioner:
 class CmdEntity(CmdPositioner):
     """Methods for entities"""
     
-    def __init__(self, connection):
+    def __init__(self, connection, id = ""):
         CmdPositioner.__init__(self, connection, b"entity")
+        self._id = id
     
-    def getName(self, id):
+    def getName(self, id = None):
         """Get the list name of the player with entity id => [name:str]
         
         Also can be used to find name of entity if entity is not a player."""
         return self.conn.sendReceive(b"entity.getName", id)
 
-    def getEntities(self, id, distance=10, typeId=""):
+    def getEntities(self, id = None, distance=10, typeId=""):
         """Return a list of entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeId:int) =>
         [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]
         
         If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used
         la fonction renvoie :  ID de l'entité (int), type d'entité (str), position de l'entité en X (float), Y(float) et Z(float)
         """
-        s = self.conn.sendReceive(b"entity.getEntities", id, distance, typeId)
+        if id is None:
+            id = self.id
+        s = self.conn.sendReceive(self.pkg + b".getEntities", id, distance, typeId)
         entities = [e for e in s.split("|") if e]
         
         return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
 
-    def removeEntities(self, id, typeEntity,distance=10):
+    def removeEntities(self, id = None, typeEntity = "",distance=10):
         """Remove entities all entities near entity (playerEntityId:int, distanceFromPlayerInBlocks:int, typeEntity:str ) => (removedEntitiesCount:int)"""
         """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        return int(self.conn.sendReceive(b"entity.removeEntities", id, distance, typeEntity))
+        if id is None:
+            id = self.id
+        return int(self.conn.sendReceive(self.pkg + b".removeEntities", id, distance, typeEntity))
 
     def pollBlockHits(self, *args):
         """Only triggered by sword => [BlockEvent]"""
-        s = self.conn.sendReceive(b"entity.events.block.hits", intFloor(args))
+        s = self.conn.sendReceive(self.pkg + b".events.block.hits", flatten(args))
         events = [e for e in s.split("|") if e]
         return [BlockEvent.Hit(*list(map(int, e.split(",")))) for e in events]
 
     def pollChatPosts(self, *args):
         """Triggered by posts to chat => [ChatEvent]"""
-        s = self.conn.sendReceive(b"entity.events.chat.posts", intFloor(args))
+        s = self.conn.sendReceive(self.pkg + b".events.chat.posts", flatten(args))
         events = [e for e in s.split("|") if e]
         return [ChatEvent.Post(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in events]
     
     def pollProjectileHits(self, *args):
         """Only triggered by projectiles => [BlockEvent]"""
-        s = self.conn.sendReceive(b"entity.events.projectile.hits", intFloor(args))
+        s = self.conn.sendReceive(self.pkg + b".events.projectile.hits", flatten(args))
         events = [e for e in s.split("|") if e]
         results = []
         for e in events:
@@ -156,9 +190,9 @@ class CmdEntity(CmdPositioner):
         
     def clearEvents(self, *args):
         """Clear the entities events"""
-        self.conn.send(b"entity.events.clear", intFloor(args))
+        self.conn.send(self.pkg + b".events.clear", intFloor(args))
 
-class CmdPlayer(CmdPositioner):
+class CmdPlayer(CmdEntity):
     """Methods for the player"""
     def __init__(self, connection, id = None, pkg = b"player"):
         CmdPositioner.__init__(self, connection, b"player")
@@ -182,76 +216,21 @@ class CmdPlayer(CmdPositioner):
             self._id = []
             self.pkg = b"player"
 
-    def getPos(self):
-        return CmdPositioner.getPos(self, self.id)
-    def setPos(self, *args):
-        return CmdPositioner.setPos(self, self.id, args)
-    def getTilePos(self):
-        return CmdPositioner.getTilePos(self, self.id)
-    def setTilePos(self, *args):
-        return CmdPositioner.setTilePos(self, self.id, args)
-    def setDirection(self, *args):
-        return CmdPositioner.setDirection(self, self.id, args)
-    def getDirection(self):
-        return CmdPositioner.getDirection(self, self.id)
-    def setRotation(self, yaw):
-        return CmdPositioner.setRotation(self, self.id, yaw)
-    def getRotation(self):
-        return CmdPositioner.getRotation(self, self.id)
-    def setPitch(self, pitch):
-        return CmdPositioner.setPitch(self, self.id, pitch)
-    def getPitch(self):
-        return CmdPositioner.getPitch(self, self.id)
-
-    def getEntities(self, distance=10, typeId=""):
-        """Return a list of entities near entity (distanceFromPlayerInBlocks:int, typeId:int) =>
-        [[entityId:int,EntityTypeName:str,posX:float,posY:float,posZ:float]]
-        If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used
-        """
-        s = self.conn.sendReceive(self.pkg + b".getEntities", self.id, distance, typeId)
-        entities = [e for e in s.split("|") if e]
-        print(entities)
-        return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
-
-    def removeEntities(self, distance=10, typeEntity = ""):
-        """Remove entities all entities near entity (distanceFromPlayerInBlocks:int, typeEntity: str ) => (removedEntitiesCount:int)"""
-        """If distanceFromPlayerInBlocks:int is not specified then default 10 blocks will be used"""
-        print(distance)
-        print(typeEntity)
-        return int(self.conn.sendReceive(self.pkg + b".removeEntities", self.id, distance, typeEntity))
 
     def pollBlockHits(self):
-        """Only triggered by sword => [BlockEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.block.hits", self.id)
-        events = [e for e in s.split("|") if e]
-        return [BlockEvent.Hit(*list(map(int, e.split(",")))) for e in events]
+        return CmdEntity.pollBlockHits(self, self.id)
 
     def pollChatPosts(self):
         """Triggered by posts to chat => [ChatEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.chat.posts", self.id)
-        events = [e for e in s.split("|") if e]
-        return [ChatEvent.Post(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in events]
+        return CmdEntity.pollChatPosts(self, self.id)
     
     def pollProjectileHits(self):
         """Only triggered by projectiles => [BlockEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.projectile.hits", self.id)
-        events = [e for e in s.split("|") if e]
-        results = []
-        for e in events:
-            info = e.split(",")
-            results.append(ProjectileEvent.Hit(
-                int(info[0]), 
-                int(info[1]), 
-                int(info[2]), 
-                info[3],            # noms du joueur
-                int(info[4]),  # entityId
-                info[5]))      # entitTname
-        return results       
-        
+        return CmdEntity.pollProjectileHits(self, self.id)        
         
     def clearEvents(self):
         """Clear the players events"""
-        self.conn.send(self.pkg + b".events.clear", self.id)
+        clearEvents.pollChatPosts(self, self.id)
 
 class CmdCamera:
     def __init__(self, connection):
@@ -322,6 +301,7 @@ class Minecraft:
         self.entity = CmdEntity(connection)
         self.player = CmdPlayer(connection)
         self.events = CmdEvents(connection)
+        
 
         
     # GetBlock n'utilise que des arguments de position mais renvoie une chaîne de caractères
