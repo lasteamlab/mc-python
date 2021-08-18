@@ -1,6 +1,6 @@
 
 
-minecraft-python - python for minecraft server by http://pinet.rouviere.free.fr/index.html
+mc-python - python for minecraft server by http://pinet.rouviere.free.fr/index.html
 
 based on the package mcpi developed by Martin O'Lannon @martinohanlon for the Raspberry Juice Mod, modified by @sprouviere, and further modified by @lasteamlab.
 
