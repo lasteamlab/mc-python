@@ -20,7 +20,7 @@ from .util import flatten
     @ modification S. PINET, LPO ROUVIERE TOULON - version 1.2 - jan 2020
     """
 
-""" Updated to include functionality provided by RaspberryJuice:
+""" Updated to include functionality provided by MCPythonMod:
 - getBlocks()
 - getDirection()
 - getPitch()
@@ -153,9 +153,7 @@ class CmdEntity(CmdPositioner):
         if id is None:
             id = self.id
         s = self.conn.sendReceive(self.pkg + b".getEntities", id, distance, typeId)
-        print("STRING:" + str(s))
         entities = [e for e in s.split("|") if e]
-        print("ENTITIES:" + str(entities))
         
         return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
 
@@ -168,34 +166,15 @@ class CmdEntity(CmdPositioner):
 
     def pollBlockHits(self, *args):
         """Only triggered by sword => [BlockEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.block.hits", flatten(args))
-        events = [e for e in s.split("|") if e]
-        return [BlockEvent.Hit(*list(map(int, e.split(",")))) for e in events]
-
+        return CmdEvents.pollBlockHits(self.conn, self.pkg, *args)
+ 
     def pollChatPosts(self, *args):
         """Triggered by posts to chat => [ChatEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.chat.posts", flatten(args))
-        events = [e for e in s.split("|") if e]
-        return [ChatEvent.Post(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in events]
-    
+        return CmdEvents.pollChatPosts(self.conn, self.pkg, *args)
+   
     def pollProjectileHits(self, *args):
         """Only triggered by projectiles => [BlockEvent]"""
-        s = self.conn.sendReceive(self.pkg + b".events.projectile.hits", flatten(args))
-        events = [e for e in s.split("|") if e]
-        results = []
-        for e in events:
-            info = e.split(",")
-            results.append(ProjectileEvent.Hit(
-                int(info[0]), 
-                int(info[1]), 
-                int(info[2]), 
-                info[3],       # noms du joueur
-                int(info[4]),  # entityId si c'est 0 c'est que aucune entité n'a été touchée
-                info[5]))      # entitTname
-        return results        
-        
-        
-        
+        return CmdEvents.pollProjectileHits(self.conn, self.pkg, *args)
         
     def clearEvents(self, *args):
         """Clear the entities events"""
@@ -211,7 +190,7 @@ class CmdPlayer(CmdEntity):
     def id(self):
         return self._id
 
-    # When a playerid changes then toggle multiplayer/player.  This way RaspberryJuice2
+    # When a playerid changes then toggle multiplayer/player.  This way MCPythonMod
     # knows whether or not the first arg is a playerid
     @id.setter
     def id(self, val):
@@ -266,25 +245,29 @@ class CmdEvents:
     def __init__(self, connection):
         self.conn = connection
 
-    def clearAll(self):
+    @staticmethod
+    def clearAll(conn):
         """Clear all old events"""
-        self.conn.send(b"events.clear")
+        conn.send(b"events.clear")
 
-    def pollBlockHits(self):
+    @staticmethod
+    def pollBlockHits(conn, pkg, *args):
         """Only triggered by sword => [BlockEvent]"""
-        s = self.conn.sendReceive(b"events.block.hits")
+        s = conn.sendReceive(pkg + b".events.block.hits", flatten(args))
         events = [e for e in s.split("|") if e]
         return [BlockEvent.Hit(*list(map(int, e.split(",")))) for e in events]
 
-    def pollChatPosts(self):
+    @staticmethod
+    def pollChatPosts(conn, pkg, *args):
         """Triggered by posts to chat => [ChatEvent]"""
-        s = self.conn.sendReceive(b"events.chat.posts")
+        s = conn.sendReceive(pkg + b".events.chat.posts", flatten(args))
         events = [e for e in s.split("|") if e]
         return [ChatEvent.Post(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in events]
     
-    def pollProjectileHits(self):
+    @staticmethod
+    def pollProjectileHits(conn, pkg, *args):
         """Only triggered by projectiles => [BlockEvent]"""
-        s = self.conn.sendReceive(b"events.projectile.hits")
+        s = conn.sendReceive(pkg + b".events.projectile.hits", flatten(args))
         events = [e for e in s.split("|") if e]
         results = []
         for e in events:
@@ -294,9 +277,9 @@ class CmdEvents:
                 int(info[1]), 
                 int(info[2]), 
                 info[3],       # noms du joueur
-                int(info[4]),  # entityId
+                int(info[4]),  # entityId si c'est 0 c'est que aucune entité n'a été touchée
                 info[5]))      # entitTname
-        return results
+        return results        
 
 class Minecraft:
     """version modified  1.1 - jan 2020
