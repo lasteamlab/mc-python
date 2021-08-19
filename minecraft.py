@@ -134,6 +134,13 @@ class CmdEntity(CmdPositioner):
         """Get the list name of the player with entity id => [name:str]
         
         Also can be used to find name of entity if entity is not a player."""
+        if id is None:
+            if not self.id:
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = int(self.conn.sendReceive(b"world.getPlayerId", self.id))
         return self.conn.sendReceive(b"entity.getName", id)
 
     def getEntities(self, id = None, distance=10, typeId=""):
@@ -146,7 +153,9 @@ class CmdEntity(CmdPositioner):
         if id is None:
             id = self.id
         s = self.conn.sendReceive(self.pkg + b".getEntities", id, distance, typeId)
+        print("STRING:" + str(s))
         entities = [e for e in s.split("|") if e]
+        print("ENTITIES:" + str(entities))
         
         return [ [int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
 
@@ -196,7 +205,7 @@ class CmdPlayer(CmdEntity):
     """Methods for the player"""
     def __init__(self, connection, id = None, pkg = b"player"):
         CmdPositioner.__init__(self, connection, b"player")
-        self._id = []
+        self.id = id
         
     @property
     def id(self):
@@ -890,8 +899,8 @@ class Minecraft:
         x,y,z : postition
         EntityType : str parmi la liste des Entités org.bukkit.EntityType: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
         
-comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
-"""
+        comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMBIE_VILLAGER', 'SKELETON_HORSE', 'ZOMBIE_HORSE', 'ARMOR_STAND', 'DONKEY', 'MULE', 'EVOKER', 'VEX', 'VINDICATOR', 'ILLUSIONER', 'CREEPER', 'SKELETON', 'SPIDER', 'GIANT', 'ZOMBIE', 'SLIME', 'GHAST', 'PIG_ZOMBIE', 'ENDERMAN', 'CAVE_SPIDER', 'SILVERFISH', 'BLAZE', 'MAGMA_CUBE', 'ENDER_DRAGON', 'WITHER', 'BAT', 'WITCH', 'ENDERMITE', 'GUARDIAN', 'SHULKER', 'PIG', 'SHEEP', 'COW', 'CHICKEN', 'SQUID', 'WOLF', 'MUSHROOM_COW', 'SNOWMAN', 'OCELOT', 'IRON_GOLEM', 'HORSE', 'RABBIT', 'POLAR_BEAR', 'LLAMA', 'PARROT', 'VILLAGER', 'TURTLE', 'PHANTOM', 'COD', 'SALMON', 'PUFFERFISH', 'TROPICAL_FISH', 'DROWNED', 'DOLPHIN', 'CAT', 'PANDA', 'PILLAGER', 'RAVAGER', 'TRADER_LLAMA', 'WANDERING_TRADER', 'FOX', 'BEE'
+        """
         
         return int(self.conn.sendReceive(b"world.spawnEntity", args))
 
@@ -902,15 +911,15 @@ comme par exemple  : 'ELDER_GUARDIAN', 'WITHER_SKELETON', 'STRAY', 'HUSK', 'ZOMB
         bebe(str) : "BABY" pour indiquer que l'on veut un chaton
         
         catType : type de chat str parmi la liste 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Cat.Type.html
-comme par exemple  : ALL_BLACK, BLACK, BRITISH_SHORTHAIR, CALICO,
-JELLIE, PERSIAN, RAGDOLL, RED, SIAMESE, TABBY, WHITE
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Cat.Type.html
+        comme par exemple  : ALL_BLACK, BLACK, BRITISH_SHORTHAIR, CALICO,
+        JELLIE, PERSIAN, RAGDOLL, RED, SIAMESE, TABBY, WHITE
         
         collarColor (str) : couleur du collierdi chat  dans la liste :
-BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
-MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
+        BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
+        MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
 
-"""
+        """
         
         return int(self.conn.sendReceive(b"world.spawnCat",args))        
  
@@ -921,12 +930,12 @@ MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
 
         
         color (str) : Couleur de base de la robe
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Color.html
-comme par exemple  : BLACK, BROWN, CHESTNUT, CREAMY, DARK_BROWN, GRAY, WHITE
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Color.html
+        comme par exemple  : BLACK, BROWN, CHESTNUT, CREAMY, DARK_BROWN, GRAY, WHITE
         
         style(str) : style ou marques du cheval :
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Style.html
-BLACK_DOTS, NONE, WHITE, WHITE_DOTS, WHITEFIELD
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Horse.Style.html
+        BLACK_DOTS, NONE, WHITE, WHITE_DOTS, WHITEFIELD
         
         bebe(str) : "BABY" pour indiquer que l'on veut un poulain
         
@@ -934,7 +943,7 @@ BLACK_DOTS, NONE, WHITE, WHITE_DOTS, WHITEFIELD
         
         domestication (float) : niveau de domestication du cheval
 
-"""       
+        """       
         return int(self.conn.sendReceive(b"world.spawnHorse", args))   
 
 
@@ -943,12 +952,12 @@ BLACK_DOTS, NONE, WHITE, WHITE_DOTS, WHITEFIELD
         x,y,z : postition
         
         variant (str) : couleur du perroquet 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Parrot.Variant.html
-comme par exemple  : BLUE, CYAN, GRAY, GREEN, RED
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Parrot.Variant.html
+        comme par exemple  : BLUE, CYAN, GRAY, GREEN, RED
 
         bebe(str) : "BABY" pour indiquer que l'on veut un jeune perroquet
 
-"""       
+        """       
         return int(self.conn.sendReceive(b"world.spawnParrot", args)) 
 
         
@@ -958,12 +967,12 @@ comme par exemple  : BLUE, CYAN, GRAY, GREEN, RED
         x,y,z : postition
         
         type (str) : pelage du lapin 
-https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Rabbit.Type.html
-comme par exemple  : BLACK, BLACK_AND_WHITE, BROWN, GOLD, SALT_AND_PEPPER, THE_KILLER_BUNNY, WHITE
+        https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/Rabbit.Type.html
+        comme par exemple  : BLACK, BLACK_AND_WHITE, BROWN, GOLD, SALT_AND_PEPPER, THE_KILLER_BUNNY, WHITE
 
         bebe(str) : "BABY" pour indiquer que l'on veut un jeune perroquet
 
-"""       
+        """       
         return int(self.conn.sendReceive(b"world.spawnRabbit", args))        
    
     def spawnWolf(self,*args):   
@@ -974,11 +983,11 @@ comme par exemple  : BLACK, BLACK_AND_WHITE, BROWN, GOLD, SALT_AND_PEPPER, THE_K
         bebe(str) : "BABY" pour indiquer que l'on veut un chaton
                
         collarColor (str) : couleur du collier du loup  dans la liste :
-BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
-MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
-Si l'argument est présent le loup est apprivoisé, sinon il est non apprivoisable
+        BLACK,BLUE, BROWN, CYAN, GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, LIME, 
+        MAGENTA, ORANGE, PINK, PURPLE, RED, WHITE, YELLOW
+        Si l'argument est présent le loup est apprivoisé, sinon il est non apprivoisable
 
-"""
+        """
         
         return int(self.conn.sendReceive(b"world.spawnWolf",args))
         
