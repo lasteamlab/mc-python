@@ -241,9 +241,9 @@ class CmdCamera:
         self.conn.send(b"camera.setPos", args)
 
 class CmdEvents:
-    """Events"""
-    def __init__(self, connection):
-        self.conn = connection
+    """
+    Events
+    """
 
     @staticmethod
     def clearAll(conn):
@@ -289,10 +289,10 @@ class Minecraft:
     def __init__(self, connection):
         self.conn = connection
 
-        self.camera = CmdCamera(connection)
-        self.entity = CmdEntity(connection)
-        self.player = CmdPlayer(connection)
-        self.events = CmdEvents(connection)
+        # self.camera = CmdCamera(connection)
+        # self.entity = CmdEntity(connection)
+        # self.player = CmdPlayer(connection)
+        # self.events = CmdEvents(connection)
         
 
         
@@ -322,7 +322,6 @@ class Minecraft:
         intFloor(args[0:2])
         self.conn.send(b"world.setBlock", args)
        
-
     def setBlocks(self, *args):
         """Set a cuboid of blocks (x0,y0,z0,x1,y1,z1,Material) -  v 1.15.1
 
@@ -378,8 +377,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockDir",flatargs[0:5])
 
-
-
     def setBlockMultiFace(self, *args):
         """Set block Multiface, BlockData: MultipleFacing (x,y,z,Material,faces*)
 
@@ -404,7 +401,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
         #print(flatargs)
         self.conn.send(b"world.setBlockMultiFace",flatargs[0:nb])
-
 
     def setBlockOrient(self, *args):
         """Set block orientable (x,y,z,Material,Orientation -  v 1.15.1
@@ -431,7 +427,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBlockOrient",flatargs[0:5])
-
 
     def setBlockRotat(self, *args):
         """Set block rotatable  (x,y,z,Material,Orientation, [motif*,couleur*]
@@ -506,7 +501,6 @@ class Minecraft:
         flatargs[4]=str(flatargs[4]);
         self.conn.send(b"world.setBlockAge",flatargs[0:5])               
 
-
     def setBlockBisected(self, *args):
         """Set a BlockData : Bisected -like peony, rose_bush (x,y,z, Material, bisected)
 
@@ -526,8 +520,6 @@ class Minecraft:
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["UPPER"])
         flatargs[1] = flatargs[1] - 1  # Y  --- LOWER
         self.conn.send(b"world.setBlockBisected",flatargs[0:4]+["LOWER"])
-
-
 
     def setBlockSapl(self, *args) :
         """Set block Sapling(x,y,z,material,stage) -  v 1.15.1
@@ -563,12 +555,12 @@ class Minecraft:
         
         Level :	 on fixe la valeur de level
         In the case of water and lava blocks the levels have special meanings: 
-	 a level of 0 corresponds to a source block, 
-	1-7 regular fluid heights,
-	and 8-15 to "falling" fluids. 
-	 All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
-	equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
-	 whilst 7 is the lowest.
+        a level of 0 corresponds to a source block, 
+        1-7 regular fluid heights,
+        and 8-15 to "falling" fluids. 
+        All falling fluids have the same behaviour, but the level corresponds to that of the block above them,
+        equal to this.level - 8 Note that counterintuitively, an adjusted level of 1 is the highest level, 
+        whilst 7 is the lowest.
                 
         material : str
         
@@ -637,7 +629,6 @@ class Minecraft:
             flatargs.append(arg)
         intFloor(flatargs[0:3])
         self.conn.send(b"world.setBed",flatargs[0:6])
-
 
     def setGate(self, *args):
         """Set a Gate (x,y,z, Material, Facing, DansMur)
@@ -716,8 +707,7 @@ class Minecraft:
             flatargs = flatargs + ['False']
 
         self.conn.send(b"world.setTrapDoor",flatargs[0:7])
-
-       
+      
     def setPane(self, *args):
         """Set a Fence - barrière block who is a BlockData : GlassPane ie
         who has facing property (x,y,z, Material, Facing)
@@ -748,8 +738,7 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setPane",flatargs[0:nb])
-        
-       
+             
     def setFence(self, *args):
         """Set a Fence - barrière block who is a BlockData : fence ie
         who has facing property (x,y,z, Material, Facing)
@@ -773,8 +762,6 @@ class Minecraft:
 
         self.conn.send(b"world.setFence",flatargs[0:5])
         
-
-
     def setChest(self, *args):
         """Set a Chest (x,y,z, Material, ChestType, Direction)
 
@@ -790,7 +777,6 @@ class Minecraft:
         intFloor(flatargs[0:3])
 
         self.conn.send(b"world.setChest",flatargs[0:6])
-
 
     def setFurnace(self, *args):
         """Set a Blocktype : Furnace (x,y,z, Material, Direction, Light)
@@ -835,7 +821,6 @@ class Minecraft:
 
         self.conn.send(b"world.setSlab",flatargs[0:5])
 
-
     def setStairs(self, *args):
         """Set a Stair (x,y,z, Material, Facing, Shape, Half)
 
@@ -876,7 +861,6 @@ class Minecraft:
 
         self.conn.send(b"world.setStairs",flatargs[0:7])
 
-
     def spawnEntity(self, *args):
         """Spawn entity (x,y,z,EntityType,"BABY")  - version 1.15.1
         x,y,z : postition
@@ -906,7 +890,6 @@ class Minecraft:
         
         return int(self.conn.sendReceive(b"world.spawnCat",args))        
  
-
     def spawnHorse(self, *args):
         """Spawn Cat (x,y,z, color, style, bebe="BABY", saut)  - version 1.15.1
         x,y,z : postition
@@ -929,7 +912,6 @@ class Minecraft:
         """       
         return int(self.conn.sendReceive(b"world.spawnHorse", args))   
 
-
     def spawnParrot(self, *args):
         """Spawn Parrot(x,y,z, variant,bebe)  - version 1.15.1
         x,y,z : postition
@@ -943,7 +925,6 @@ class Minecraft:
         """       
         return int(self.conn.sendReceive(b"world.spawnParrot", args)) 
 
-        
     def spawnRabbit(self, *args):
         
         """Spawn Rabbit(x,y,z, type,bebe)  - version 1.15.1
@@ -1011,15 +992,13 @@ class Minecraft:
         #return [Entity(int(e[:e.find(",")]), e[e.find(",") + 1:]) for e in types]
         return [e for e in types]
 
-
     def getEntities(self, typeId=""):
         """Return a list of all currently loaded entities (EntityType:str) => [[entityId:int,entityTypeId:int,entityTypeName:str,posX:float,posY:float,posZ:float]]"""
         s = self.conn.sendReceive(b"world.getEntities", typeId)
         entities = [e for e in s.split("|") if e]
         print(entities)
         return [[int(n.split(",")[0]), n.split(",")[1], float(n.split(",")[2]), float(n.split(",")[3]), float(n.split(",")[4])] for n in entities]
-      
-        
+           
     def removeEntity(self, id):
         """Remove entity Id (entityId:int) => (removedEntitiesCount:int)"""
         return int(self.conn.sendReceive(b"world.removeEntity", int(id)))
