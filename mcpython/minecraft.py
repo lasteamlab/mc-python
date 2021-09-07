@@ -564,9 +564,127 @@ class CmdEntity(CmdPositioner):
 
         return self.conn.sendReceive(b"entity.setOwner", id, ownerid)
 
-    # -------------------------------------- EVENTS --------------------------------------
+# -------------------------------------- ABSTRACT HORSE --------------------------------------
 
-    def callMethod(self, method = "isAngry", id = None, args = []):
+    def getDomestication(self, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+
+        :return: domestication level
+        :rtype: int
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        
+        result = self.conn.sendReceive(b"entity.getDomestication", id)
+        
+        return result
+
+    def setDomestication(self, level, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+        :param level: domestication level
+        :type tamed: int 
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        return self.conn.sendReceive(b"entity.setDomestication", id, level)
+
+    def getMaxDomestication(self, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+
+        :return: max domestication level
+        :rtype: int
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        
+        result = self.conn.sendReceive(b"entity.getMaxDomestication", id)
+        
+        return result
+
+    def setMaxDomestication(self, level, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+        :param level: max domestication level
+        :type tamed: int 
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        return self.conn.sendReceive(b"entity.setMaxDomestication", id, level)
+
+    def getJumpStrength(self, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+
+        :return: jump strength
+        :rtype: float
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        
+        result = self.conn.sendReceive(b"entity.getJumpStrength", id)
+        
+        return result
+
+    def setJumpStrength(self, level, id = None):
+        """
+        :param id: entity or player id, can be integer or gamertag -- (default None). If id is None then uses self.id.
+        :type id: str, int 
+        :param level: jump strength (0 - 2)
+        :type tamed: float 
+        """
+        if id is None:
+            # if no id is set for player the server will choose the player
+            if not self.id and self.pkg != b'player':
+                return("no id specified")
+            elif type(self.id) == int or self.id.isnumeric():
+                id = self.id
+            else:
+                id = Minecraft.getPlayerEntityIdStatic(self.conn, self.id)
+        return self.conn.sendReceive(b"entity.setJumpStrength", id, level)
+
+    
+
+    # -------------------------------------- GENERIC --------------------------------------
+
+    def callMethod(self, method, args = [], id = None):
 
         """
         Attempts to call a method for a specific entity.
@@ -583,8 +701,9 @@ class CmdEntity(CmdPositioner):
         :Supported Methods (all): getCollarColor(), 
             setCollarColor(str), 
             isAngry(), 
-            setAnger(boolena) - does nothing, 
-            isPlayingDead() - does nothing,
+            setAnger(boolena), 
+            isPlayingDead(),
+            setPlayingDead(),
             isAwake(), 
             setAwake(boolean) - not tested,
             getAnger(), 
@@ -596,11 +715,39 @@ class CmdEntity(CmdPositioner):
             setAnger​(int),
             setCannotEnterHiveTicks​(int) - not tested, 
             setHasNectar(boolean), 
-            setHasStung​(boolean) - does nothing, 
+            setHasStung​(boolean), 
             setFlower​(Location) - does nothing, 
             setHive​(Location) - not tested, 
+            getCatType(),
+            getFoxType(),
+            getRabbitType(),
+            getVariant(), 
+            getColor(),
+            getInventory(), 
+            getStyle(), 
+            setScreaming(Boolean).
+            isScreaming(), 
+            getStrength(),
+            setStrength(int), 
+            getFirstTrustedPlayer(), 
+            getSecondTrustedPlayer(), 
+            isCrouching(), 
+            setCrouching​(boolean) - does nothing, 
+            setSleeping​(boolean)
 
-        :Supported Axolotl: getVariant, setVariant
+        :Supported Axolotl: setVariant(str)
+
+        :Supported Cat: setType(str)
+        
+        :Supported Horse: setColor​(str), setStyle(str)
+        
+        :Supported Llama: setColor(str)
+        
+        :Supported Parrot: setVariant(str)
+
+        :Supported Rabbit: setRabbitType(str)
+
+        :Supported Fox: setFoxType(str), setFirstTrustedPlayer​(id) - does nothing, setSecondTrustedPlayer​(id) - does nothing
         """
 
         if id is None:
