@@ -110,3 +110,45 @@ elif verbose:
 
 
 
+# ------------------------- Horse (test Abstract Horse features)----------------------------
+
+
+position = position + vec(1, 0, 0)
+
+if verbose:
+    print()
+    print("Spawning horse, setting domestication and jump strength")
+
+horseid = mc.spawnEntity(position, 'HORSE')
+horse = CmdEntity(mc.conn, horseid)
+
+oldlevel = horse.getMaxDomestication()
+setlevel = 8
+horse.setMaxDomestication(setlevel)
+newlevel = horse.getMaxDomestication()
+
+if not str(setlevel) == str(newlevel):
+    print("***** ERROR: Horse max domestication not set.")
+elif verbose:
+    print("--- set max domestication successful")
+
+oldlevel = horse.getDomestication()
+setlevel = 5 
+horse.setDomestication(setlevel)
+newlevel = horse.getDomestication()
+
+if not str(setlevel) == str(newlevel):
+    print("***** ERROR: Horse domestication not set.")
+elif verbose:
+    print("--- set domestication successful")
+
+oldlevel = horse.getJumpStrength()
+setlevel = 0.9 
+horse.setJumpStrength(setlevel)
+newlevel = horse.getJumpStrength()
+
+if not str(setlevel) == str(newlevel):
+    print("***** ERROR: Horse jump strength not set.")
+elif verbose:
+    print("--- set jump strength successful")
+
